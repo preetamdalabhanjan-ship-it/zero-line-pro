@@ -200,6 +200,18 @@
             <div id="frontDeskQueueList" class="space-y-2.5"></div>
           </div>
 
+          <!-- Front Desk Single-Window Cash & Billing Counter -->
+          <div class="bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+              <div>
+                <h2 class="text-base font-bold text-zinc-100">Front Desk Cash & Billing Counter</h2>
+                <p class="text-xs text-zinc-400">When the doctor taps "Consultation Complete", the final bill arrives here. Collect payment here so Pharmacy unlocks medicine handover.</p>
+              </div>
+              <span class="text-xs font-semibold text-emerald-300 bg-emerald-950 px-2.5 py-1 rounded-lg border border-emerald-800">Front Desk Cashier</span>
+            </div>
+            <div id="frontDeskBillingList" class="space-y-3"></div>
+          </div>
+
           <!-- Simulated Patient WhatsApp Live Token Screen -->
           <div class="bg-emerald-950 text-white rounded-2xl shadow-sm border border-emerald-800 p-5 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
@@ -296,9 +308,15 @@
             </div>
           </div>
 
-          <!-- Standardized Medicine Selector -->
+          <!-- Standardized Medicine Selector with Instant Search Tab -->
           <div class="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-3">
-            <label class="block text-xs font-bold text-zinc-200 uppercase tracking-wider">Add Medicine from Formulary</label>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <label class="block text-xs font-bold text-zinc-200 uppercase tracking-wider">Search & Add Medicine from Formulary</label>
+              <span id="medSearchCountBadge" class="text-[11px] font-mono text-teal-300">All medicines shown</span>
+            </div>
+            <div class="relative">
+              <input id="medSearchInput" type="text" placeholder="🔍 Search medicine by name, salt/class (e.g. Paracetamol, Antibiotic, PPI, Diabetes)..." oninput="filterFormularyDropdown(this.value)" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-xs" />
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
               <div class="sm:col-span-5">
                 <select id="medSelectDropdown" class="w-full rounded-xl border border-zinc-800 px-2.5 py-2 text-xs bg-white"></select>
@@ -352,10 +370,10 @@
       <div class="bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <div>
-            <h2 class="text-base font-bold text-zinc-100">Zero-Line Pharmacy Packing & Single-Window Billing Counter</h2>
-            <p class="text-xs text-zinc-400">The moment the doctor taps "Consultation Complete", orders appear here automatically. Pack the bag, collect 1 payment, and hand over.</p>
+            <h2 class="text-base font-bold text-zinc-100">Zero-Line Pharmacy Packing & Verified Handover Counter</h2>
+            <p class="text-xs text-zinc-400">Pack the medicine bag as soon as the doctor finishes. Handover is strictly locked until Front Desk collects cash and marks the bill PAID.</p>
           </div>
-          <span class="text-xs font-semibold text-purple-300 bg-purple-950 px-2.5 py-1 rounded-lg border border-purple-800">Step 3 • Zero Queue Exit</span>
+          <span class="text-xs font-semibold text-purple-300 bg-purple-950 px-2.5 py-1 rounded-lg border border-purple-800">Step 3 • Paid-Only Handover Gate</span>
         </div>
 
         <div id="pharmacyDispatchList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
@@ -636,14 +654,20 @@
 
     // --- Standardized Medicine Formulary (Error-Free Dropdown) ---
     const FORMULARY = [
-      { id: "MED-01", name: "Paracetamol 650mg Tab", activeClass: "Acetaminophen", unitPrice: 30 },
-      { id: "MED-02", name: "Amoxicillin + Clavulanate 625mg Tab", activeClass: "Penicillin", unitPrice: 180 },
-      { id: "MED-03", name: "Azithromycin 500mg Tab", activeClass: "Macrolide", unitPrice: 120 },
-      { id: "MED-04", name: "Cetirizine 10mg Tab", activeClass: "Antihistamine", unitPrice: 25 },
-      { id: "MED-05", name: "Pantoprazole 40mg Tab", activeClass: "PPI", unitPrice: 65 },
-      { id: "MED-06", name: "Metformin 500mg SR Tab", activeClass: "Biguanide", unitPrice: 55 },
-      { id: "MED-07", name: "Ibuprofen 400mg Tab", activeClass: "NSAID", unitPrice: 40 },
-      { id: "MED-08", name: "Cotrimoxazole DS Tab", activeClass: "Sulfa", unitPrice: 45 }
+      { id: "MED-01", name: "Paracetamol 650mg Tab", activeClass: "Acetaminophen / Fever", unitPrice: 30 },
+      { id: "MED-02", name: "Amoxicillin + Clavulanate 625mg Tab", activeClass: "Penicillin Antibiotic", unitPrice: 180 },
+      { id: "MED-03", name: "Azithromycin 500mg Tab", activeClass: "Macrolide Antibiotic", unitPrice: 120 },
+      { id: "MED-04", name: "Cetirizine 10mg Tab", activeClass: "Antihistamine / Allergy", unitPrice: 25 },
+      { id: "MED-05", name: "Pantoprazole 40mg Tab", activeClass: "PPI / Acidity", unitPrice: 65 },
+      { id: "MED-06", name: "Metformin 500mg SR Tab", activeClass: "Biguanide / Diabetes", unitPrice: 55 },
+      { id: "MED-07", name: "Ibuprofen 400mg Tab", activeClass: "NSAID / Painkiller", unitPrice: 40 },
+      { id: "MED-08", name: "Cotrimoxazole DS Tab", activeClass: "Sulfa Antibiotic", unitPrice: 45 },
+      { id: "MED-09", name: "Montelukast + Levocetirizine Tab", activeClass: "Asthma / Cold Allergy", unitPrice: 110 },
+      { id: "MED-10", name: "Amlodipine 5mg Tab", activeClass: "CCB / Blood Pressure", unitPrice: 45 },
+      { id: "MED-11", name: "Atorvastatin 10mg Tab", activeClass: "Statin / Cholesterol", unitPrice: 90 },
+      { id: "MED-12", name: "Dextromethorphan Cough Syrup 100ml", activeClass: "Antitussive / Dry Cough", unitPrice: 85 },
+      { id: "MED-13", name: "ORS Electral Sachet", activeClass: "Electrolyte / Dehydration", unitPrice: 22 },
+      { id: "MED-14", name: "Vitamin D3 60,000 IU Cap", activeClass: "Supplement / Bone", unitPrice: 130 }
     ];
 
     // --- Initial Seed Cloud Database (Patients + Live Queue) ---
@@ -1205,12 +1229,32 @@ ${statusAdvice}`;
     }
 
     // --- Doctor Tablet Logic ---
-    function populateFormularyDropdown() {
+    function populateFormularyDropdown(filterQuery) {
       const sel = document.getElementById("medSelectDropdown");
+      const badge = document.getElementById("medSearchCountBadge");
       const cur = state.saasConfig.currency;
-      sel.innerHTML = FORMULARY.map(
+      const q = (filterQuery || "").trim().toLowerCase();
+      const filtered = FORMULARY.filter((m) => {
+        if (!q) return true;
+        return m.name.toLowerCase().includes(q) || m.activeClass.toLowerCase().includes(q) || m.id.toLowerCase().includes(q);
+      });
+
+      if (badge) {
+        badge.textContent = q ? `${filtered.length} match(es) found` : `All ${FORMULARY.length} medicines shown`;
+      }
+
+      if (filtered.length === 0) {
+        sel.innerHTML = `<option value="">No matching medicine found for "${escapeHtml(filterQuery)}"</option>`;
+        return;
+      }
+
+      sel.innerHTML = filtered.map(
         (m) => `<option value="${m.id}">${m.name} [${m.activeClass}] — ${cur}${m.unitPrice}</option>`
       ).join("");
+    }
+
+    function filterFormularyDropdown(query) {
+      populateFormularyDropdown(query);
     }
 
     function selectDoctorPatient(tokenStr) {
@@ -1237,6 +1281,10 @@ ${statusAdvice}`;
       const patient = state.patients[item.cloudId];
       const medId = document.getElementById("medSelectDropdown").value;
       const medObj = FORMULARY.find((m) => m.id === medId);
+      if (!medObj) {
+        showToast("Select a valid medicine from the search results first.");
+        return;
+      }
       const dosage = document.getElementById("medDosageDropdown").value;
       const days = parseInt(document.getElementById("medDaysInput").value, 10) || 5;
 
@@ -1359,11 +1407,23 @@ ${statusAdvice}`;
 
       saveState();
       renderAll();
-      showToast(`Cloud ID ${item.cloudId} updated! Final bill (${state.saasConfig.currency}${totalBill}) & Rx dispatched to Pharmacy.`);
-      switchTab("pharmacy");
+      showToast(`Cloud ID ${item.cloudId} updated! Bill (${state.saasConfig.currency}${totalBill}) sent to Front Desk Cashier & Rx sent to Pharmacy.`);
+      switchTab("frontdesk", true);
     }
 
-    // --- Pharmacy & 1-Stop Exit Actions ---
+    // --- Front Desk Cash Collection & Pharmacy Paid-Only Handover Actions ---
+    function collectCashAtFrontDesk(tokenStr) {
+      const item = state.queue.find((q) => q.token === tokenStr);
+      if (!item) return;
+      item.paid = true;
+      const medTotal = (item.medicines || []).reduce((acc, m) => acc + m.price, 0);
+      const grandTotal = (item.consultFee || 500) + medTotal;
+      saveState();
+      renderAll();
+      openDigitalSlip(tokenStr);
+      showToast(`Cash ${state.saasConfig.currency}${grandTotal} collected at Front Desk for ${item.token}! Pharmacy handover is now UNLOCKED.`);
+    }
+
     function togglePackBag(tokenStr) {
       const item = state.queue.find((q) => q.token === tokenStr);
       if (!item) return;
@@ -1376,13 +1436,16 @@ ${statusAdvice}`;
     function completeSingleWindowExit(tokenStr) {
       const item = state.queue.find((q) => q.token === tokenStr);
       if (!item) return;
+      if (!item.paid) {
+        showToast(`⛔ HANDOVER BLOCKED: Bill for ${item.token} is UNPAID! Collect cash at the Front Desk first.`);
+        return;
+      }
       item.packed = true;
-      item.paid = true;
       item.status = "COMPLETED";
       saveState();
       renderAll();
       openDigitalSlip(tokenStr);
-      showToast(`Zero-Line Checkout complete for ${item.token}! Patient exits with prepared bag.`);
+      showToast(`Verified Paid Bill! Medicine bag handed over to ${item.token}.`);
     }
 
     function openDigitalSlip(tokenStr) {
@@ -1608,6 +1671,56 @@ ${statusAdvice}`;
       renderDraftRxList();
     }
 
+    function renderFrontDeskBilling() {
+      const container = document.getElementById("frontDeskBillingList");
+      if (!container) return;
+      const cur = state.saasConfig.currency;
+      const items = state.queue.filter((q) => q.status === "PHARMACY_READY" || q.status === "COMPLETED");
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-xl">No completed consultations awaiting payment yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = items.map((item) => {
+        const p = state.patients[item.cloudId] || { name: "Unknown", phone: "" };
+        const medTotal = (item.medicines || []).reduce((acc, m) => acc + m.price, 0);
+        const grandTotal = (item.consultFee || 500) + medTotal;
+
+        return `
+          <div class="p-3.5 rounded-xl border ${item.paid ? 'border-emerald-800 bg-emerald-950/20' : 'border-amber-700 bg-zinc-900/90'} flex flex-wrap items-center justify-between gap-3">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 rounded-lg font-mono font-bold text-xs ${item.paid ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-black'}">${item.token}</span>
+                <span class="font-bold text-sm text-zinc-100">${escapeHtml(p.name)}</span>
+                <span class="text-xs font-mono text-zinc-400">(${p.cloudId})</span>
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-full ${item.paid ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}">
+                  ${item.paid ? '✓ CASH PAID AT FRONT DESK' : '⏳ AWAITING CASH PAYMENT'}
+                </span>
+              </div>
+              <div class="text-xs text-zinc-400">
+                Consult Fee: <span class="font-mono text-zinc-200">${cur}${item.consultFee || 500}</span> + Medicines (${(item.medicines || []).length}): <span class="font-mono text-zinc-200">${cur}${medTotal}</span> = <strong class="text-teal-300 font-mono text-sm">${cur}${grandTotal}</strong>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="openDigitalSlip('${item.token}')" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-semibold">
+                Receipt Slip
+              </button>
+              ${!item.paid ? `
+                <button type="button" onclick="collectCashAtFrontDesk('${item.token}')" class="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold shadow">
+                  💵 Collect Cash ${cur}${grandTotal} & Mark Paid
+                </button>
+              ` : `
+                <button type="button" onclick="switchTab('pharmacy')" class="px-3 py-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 text-purple-200 border border-purple-700 text-xs font-semibold">
+                  Go to Pharmacy Handover →
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
     function renderPharmacyView() {
       const container = document.getElementById("pharmacyDispatchList");
       const cur = state.saasConfig.currency;
@@ -1624,10 +1737,26 @@ ${statusAdvice}`;
         const grandTotal = (item.consultFee || 500) + medTotal;
         const isDone = item.status === "COMPLETED";
 
+        let statusBadgeText = "PACKING MEDICINE";
+        let statusBadgeClass = "bg-amber-950 text-amber-300 border border-amber-800";
+        if (isDone) {
+          statusBadgeText = "HANDED OVER & COMPLETED";
+          statusBadgeClass = "bg-emerald-950 text-emerald-300 border border-emerald-800";
+        } else if (item.paid && item.packed) {
+          statusBadgeText = "BILL PAID & BAG PACKED • READY";
+          statusBadgeClass = "bg-emerald-950 text-emerald-300 border border-emerald-700";
+        } else if (!item.paid && item.packed) {
+          statusBadgeText = "BAG PACKED • ⛔ BILL UNPAID AT DESK";
+          statusBadgeClass = "bg-rose-950 text-rose-300 border border-rose-800";
+        } else if (item.paid && !item.packed) {
+          statusBadgeText = "✓ BILL PAID • PACKING BAG";
+          statusBadgeClass = "bg-blue-950 text-blue-300 border border-blue-800";
+        }
+
         return `
           <div class="p-4 rounded-2xl border ${isDone ? 'border-emerald-800 bg-emerald-950/30' : 'border-purple-800 bg-zinc-900/80'} shadow-sm space-y-3 flex flex-col justify-between">
             <div class="space-y-2">
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
                   <span class="px-2.5 py-1 rounded-lg font-mono font-bold text-xs ${isDone ? 'bg-emerald-600 text-white' : 'bg-purple-700 text-white'}">${item.token}</span>
                   <div>
@@ -1635,13 +1764,16 @@ ${statusAdvice}`;
                     <span class="text-[11px] font-mono text-zinc-400">Cloud ID: ${p.cloudId} • +91 ${escapeHtml(p.phone)}</span>
                   </div>
                 </div>
-                <span class="text-xs font-bold px-2.5 py-1 rounded-full ${isDone ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-100 text-amber-300'}">
-                  ${isDone ? 'PAID & HANDED OVER' : (item.packed ? 'BAG PACKED • AWAITING PAY' : 'PACKING MEDICINE')}
+                <span class="text-[11px] font-bold px-2.5 py-1 rounded-full ${statusBadgeClass}">
+                  ${statusBadgeText}
                 </span>
               </div>
 
-              <div class="text-xs text-zinc-200">
-                <strong>Diagnosis:</strong> ${escapeHtml(item.diagnosis)}
+              <div class="flex items-center justify-between text-xs pt-1">
+                <span class="text-zinc-200"><strong>Diagnosis:</strong> ${escapeHtml(item.diagnosis)}</span>
+                <span class="font-bold px-2 py-0.5 rounded ${item.paid ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-rose-950 text-rose-300 border border-rose-800'}">
+                  ${item.paid ? `✓ Front Desk Bill PAID (${cur}${grandTotal})` : `⛔ Front Desk Bill UNPAID (${cur}${grandTotal})`}
+                </span>
               </div>
 
               <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs space-y-1">
@@ -1655,7 +1787,7 @@ ${statusAdvice}`;
                   <span class="font-mono">${cur}${item.consultFee || 500}</span>
                 </div>
                 <div class="flex justify-between font-bold text-zinc-100 text-sm pt-1">
-                  <span>Single-Window Total Bill</span>
+                  <span>Single-Window Total Bill (Front Desk)</span>
                   <span class="font-mono text-teal-300">${cur}${grandTotal}</span>
                 </div>
               </div>
@@ -1663,18 +1795,24 @@ ${statusAdvice}`;
 
             <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-800">
               <button type="button" onclick="openDigitalSlip('${item.token}')" class="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-semibold">
-                View / Print Digital Slip
+                View / Print Slip
               </button>
               ${!isDone ? `
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                   <button type="button" onclick="togglePackBag('${item.token}')" class="px-3 py-1.5 rounded-xl border border-purple-700 bg-purple-950 hover:bg-purple-900 text-purple-200 text-xs font-semibold">
-                    ${item.packed ? '✓ Bag Packed' : 'Mark Bag Packed'}
+                    ${item.packed ? '✓ Bag Packed' : '1. Mark Bag Packed'}
                   </button>
-                  <button type="button" onclick="completeSingleWindowExit('${item.token}')" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm">
-                    Collect ${cur}${grandTotal} & Hand Over Bag
-                  </button>
+                  ${item.paid ? `
+                    <button type="button" onclick="completeSingleWindowExit('${item.token}')" class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold shadow-sm">
+                      ✓ 2. Hand Over Medicine Bag (Bill Paid)
+                    </button>
+                  ` : `
+                    <button type="button" onclick="completeSingleWindowExit('${item.token}')" class="px-3.5 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-800 text-xs font-bold">
+                      🔒 Handover Locked (Pay ${cur}${grandTotal} at Front Desk)
+                    </button>
+                  `}
                 </div>
-              ` : `<span class="text-xs font-semibold text-emerald-400">✓ Zero-Line Exit Completed</span>`}
+              ` : `<span class="text-xs font-semibold text-emerald-400">✓ Medicine Handed Over & Exit Completed</span>`}
             </div>
           </div>
         `;
@@ -1764,6 +1902,7 @@ ${statusAdvice}`;
     function renderAll() {
       renderCounts();
       renderFrontDeskQueue();
+      renderFrontDeskBilling();
       renderDoctorView();
       renderPharmacyView();
       renderCloudDirectory();
