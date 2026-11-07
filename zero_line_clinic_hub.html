@@ -74,7 +74,13 @@
           Completed Today: <strong id="countCompleted">0</strong>
         </span>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="roleLockToggleBtn" onclick="openPinModal('manage')" class="px-2.5 py-1 rounded-lg bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-800 font-medium transition">
+          🔒 Role PIN Lock: <span id="pinLockStateText">Armed</span>
+        </button>
+        <button id="cloudSyncSetupBtn" onclick="openCloudSyncModal()" class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 font-medium transition">
+          ☁️ Multi-Device Cloud Sync
+        </button>
         <button id="installPwaBtn" onclick="openInstallModal()" class="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-medium transition">
           Install App on Any OS
         </button>
@@ -196,12 +202,17 @@
 
           <!-- Simulated Patient WhatsApp Live Token Screen -->
           <div class="bg-emerald-950 text-white rounded-2xl shadow-sm border border-emerald-800 p-5 space-y-3">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-300">Patient WhatsApp Live Token Preview</h3>
               </div>
-              <span id="waPreviewPhone" class="text-xs font-mono text-emerald-200">Select a token above</span>
+              <div class="flex items-center gap-2">
+                <span id="waPreviewPhone" class="text-xs font-mono text-emerald-200">Select a token above</span>
+                <button id="sendRealWaPreviewBtn" type="button" onclick="sendActivePreviewWhatsApp()" class="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs shadow transition">
+                  📲 Send Real WhatsApp Now
+                </button>
+              </div>
             </div>
             <div id="waPreviewBox" class="bg-emerald-900/70 border border-emerald-700/60 rounded-xl p-3.5 text-xs space-y-1.5 text-emerald-50 font-mono">
               Click "Preview WhatsApp" on any waiting token to inspect the live mobile tracker link and 10-minute arrival alert sent to the patient's phone.
@@ -506,6 +517,90 @@
     </div>
   </div>
 
+
+  <!-- Staff Role PIN Lock Modal -->
+  <div id="pinModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4">
+    <div class="bg-zinc-950 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-zinc-800 text-zinc-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div>
+          <h3 class="font-bold text-base text-zinc-100">🔒 Staff Role PIN Verification</h3>
+          <p id="pinModalSubtitle" class="text-xs text-zinc-400">Enter PIN to unlock restricted clinic view</p>
+        </div>
+        <button id="closePinModalBtn" onclick="closePinModal()" class="text-zinc-400 hover:text-white font-bold text-sm">✕</button>
+      </div>
+      <form id="pinVerifyForm" onsubmit="submitPinVerification(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-zinc-300 mb-1">Enter 4-Digit PIN</label>
+          <input id="pinInputField" type="password" inputmode="numeric" maxlength="8" placeholder="••••" class="w-full rounded-xl border border-zinc-800 px-3 py-2.5 text-center text-lg tracking-widest font-mono" required />
+        </div>
+        <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+          <div>• <strong>Doctor Tablet PIN:</strong> <code id="hintDocPin" class="text-teal-300">1234</code></div>
+          <div>• <strong>Vendor SaaS Admin PIN:</strong> <code id="hintAdminPin" class="text-amber-300">9999</code></div>
+          <div>• Front Desk & Pharmacy tabs remain open for fast counter flow.</div>
+        </div>
+        <div class="flex items-center justify-between gap-2 pt-2">
+          <button id="lockSessionNowBtn" type="button" onclick="lockAllRolesNow()" class="px-3 py-2 rounded-xl bg-rose-950 hover:bg-rose-900 text-rose-200 border border-rose-800 text-xs font-semibold">
+            Re-Lock Session
+          </button>
+          <div class="flex gap-2">
+            <button id="cancelPinBtn" type="button" onclick="closePinModal()" class="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-semibold">Cancel</button>
+            <button id="verifyPinSubmitBtn" type="submit" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold">Unlock</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Multi-Device Real-Time Cloud Sync Modal (Firebase / REST + BroadcastChannel) -->
+  <div id="cloudSyncModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 flex items-center justify-center p-4">
+    <div class="bg-zinc-950 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-zinc-800 text-zinc-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div>
+          <h3 class="font-bold text-base text-zinc-100">☁️ Multi-Device Real-Time Cloud Database Sync</h3>
+          <p class="text-xs text-zinc-400">Connect Front Desk PC, Doctor iPad & Pharmacy Counter in real time</p>
+        </div>
+        <button id="closeCloudSyncModalBtn" onclick="closeCloudSyncModal()" class="text-zinc-400 hover:text-white font-bold text-sm">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-200 space-y-1">
+          <div class="font-bold">✓ Instant Same-Device Multi-Tab Sync: ACTIVE</div>
+          <p class="text-emerald-300/90">Open this URL in 3 browser windows side-by-side (Front Desk, Doctor, Pharmacy)—every check-in and prescription syncs across tabs in 0ms automatically.</p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block font-semibold text-zinc-200">Cross-Device Cloud Database URL (Firebase Realtime DB / REST JSON Endpoint)</label>
+          <input id="cloudEndpointInput" type="url" placeholder="https://your-clinic-db.firebaseio.com" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-xs font-mono" />
+          <p class="text-[11px] text-zinc-400">Paste any free Firebase Realtime Database URL (e.g. <code class="text-teal-300">https://my-clinic-default-rtdb.firebaseio.com</code>) and a Clinic Room Key below so separate devices (Reception PC + Doctor iPad + Pharmacy Tablet) sync every 4 seconds.</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-zinc-200 mb-1">Clinic Tenant / Room ID</label>
+            <input id="cloudRoomIdInput" type="text" value="clinic_main_01" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-xs font-mono" />
+          </div>
+          <div>
+            <label class="block font-semibold text-zinc-200 mb-1">Doctor / Admin PINs</label>
+            <div class="grid grid-cols-2 gap-1.5">
+              <input id="configDocPinInput" type="text" maxlength="8" value="1234" title="Doctor PIN" class="w-full rounded-xl border border-zinc-800 px-2.5 py-2 text-xs font-mono" />
+              <input id="configAdminPinInput" type="text" maxlength="8" value="9999" title="Admin PIN" class="w-full rounded-xl border border-zinc-800 px-2.5 py-2 text-xs font-mono" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-800">
+        <button id="pullCloudNowBtn" type="button" onclick="pullFromRemoteCloud(true)" class="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-semibold">
+          ↻ Pull Latest Cloud State
+        </button>
+        <div class="flex gap-2">
+          <button id="cancelCloudSyncBtn" type="button" onclick="closeCloudSyncModal()" class="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-semibold">Close</button>
+          <button id="saveCloudSyncBtn" type="button" onclick="saveCloudSyncSettings()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-black font-bold text-xs">Save & Connect Cloud</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // --- PWA Manifest & Service Worker Setup for Cross-OS Installation ---
     let deferredInstallPrompt = null;
@@ -558,7 +653,12 @@
         currency: "₹",
         monthlyPrice: 4999,
         lifetimePrice: 49999,
-        clientCount: 25
+        clientCount: 25,
+        doctorPin: "1234",
+        adminPin: "9999",
+        cloudEndpoint: "",
+        cloudRoomId: "clinic_main_01",
+        updatedAt: 1700000000000
       },
       nextTokenNum: 104,
       nextCloudSeq: 1004,
@@ -677,12 +777,42 @@
       return JSON.parse(JSON.stringify(DEFAULT_STATE));
     }
 
+    let unlockedRoles = { doctor: false, saas: false };
+    let pendingTargetTab = null;
+    let currentPreviewToken = "T-102";
+    let syncChannel = null;
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        syncChannel = new BroadcastChannel("zero_line_clinic_live_channel");
+        syncChannel.onmessage = (ev) => {
+          if (ev.data && ev.data.patients && ev.data.queue) {
+            state = ev.data;
+            renderAll();
+          }
+        };
+      }
+      window.addEventListener("storage", (ev) => {
+        if (ev.key === "zero_line_clinic_cloud_v1" && ev.newValue) {
+          try {
+            state = JSON.parse(ev.newValue);
+            renderAll();
+          } catch (err) {}
+        }
+      });
+    } catch (e) {}
+
     function saveState() {
+      if (!state.saasConfig) state.saasConfig = {};
+      state.saasConfig.updatedAt = Date.now();
       try {
         localStorage.setItem("zero_line_clinic_cloud_v1", JSON.stringify(state));
       } catch (e) {
         // Ignore storage errors in sandboxed frames
       }
+      try {
+        if (syncChannel) syncChannel.postMessage(state);
+      } catch (e) {}
+      pushToRemoteCloud();
     }
 
     function showToast(msg) {
@@ -700,8 +830,15 @@
       document.getElementById("toastBanner").classList.add("hidden");
     }
 
-    // --- Tab Navigation ---
-    function switchTab(tabName) {
+    // --- Tab Navigation with Staff Role PIN Protection ---
+    function switchTab(tabName, bypassPin) {
+      if (!bypassPin && (tabName === "doctor" || tabName === "saas")) {
+        const isUnlocked = tabName === "doctor" ? unlockedRoles.doctor : unlockedRoles.saas;
+        if (!isUnlocked) {
+          openPinModal(tabName);
+          return;
+        }
+      }
       const tabs = ["frontdesk", "doctor", "pharmacy", "cloud", "saas"];
       tabs.forEach((t) => {
         const view = document.getElementById("view-" + t);
@@ -821,7 +958,211 @@
       showToast(`Assigned ${cloudId} & live WhatsApp token ${tokenStr} to ${name}`);
     }
 
+    function buildWhatsAppMessageText(tokenStr) {
+      const item = state.queue.find((q) => q.token === tokenStr);
+      if (!item) return null;
+      const p = state.patients[item.cloudId];
+      const waitingAhead = state.queue.filter(
+        (q) => q.status === "WAITING" && parseInt(q.token.split("-")[1], 10) < parseInt(item.token.split("-")[1], 10)
+      ).length + (state.queue.some((q) => q.status === "IN_CONSULT" && q.token !== item.token) ? 1 : 0);
+      const estMins = item.status === "IN_CONSULT" ? 0 : waitingAhead * 10;
+      const statusAdvice = estMins <= 10
+        ? "HEAD TO CLINIC NOW: Your turn is in ~10 mins (or active now). Walk straight in!"
+        : `WAIT AT HOME: ${waitingAhead} patient(s) ahead (~${estMins} mins). Arrive 10 mins before your turn.`;
+
+      return `*${state.saasConfig.brandName} — Live Token*
+Hello ${p.name} (Cloud ID: ${p.cloudId})
+Live Token: *${item.token}* (${item.status.replace("_", " ")})
+${statusAdvice}`;
+    }
+
+    function sendRealWhatsApp(tokenStr) {
+      const item = state.queue.find((q) => q.token === tokenStr);
+      if (!item) return;
+      const p = state.patients[item.cloudId];
+      previewWhatsAppToken(tokenStr);
+      const cleanPhone = String(p.phone || "").replace(/\D/g, "");
+      const fullPhone = cleanPhone.length === 10 ? "91" + cleanPhone : cleanPhone;
+      const msg = buildWhatsAppMessageText(tokenStr);
+      const waUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+      showToast(`Opened real WhatsApp chat for ${p.name} (+${fullPhone})`);
+    }
+
+    function sendActivePreviewWhatsApp() {
+      if (currentPreviewToken) {
+        sendRealWhatsApp(currentPreviewToken);
+      } else if (state.queue.length > 0) {
+        sendRealWhatsApp(state.queue[0].token);
+      }
+    }
+
+    function openPinModal(targetTab) {
+      pendingTargetTab = targetTab;
+      const docPin = (state.saasConfig && state.saasConfig.doctorPin) || "1234";
+      const admPin = (state.saasConfig && state.saasConfig.adminPin) || "9999";
+      document.getElementById("hintDocPin").textContent = docPin;
+      document.getElementById("hintAdminPin").textContent = admPin;
+      const sub = document.getElementById("pinModalSubtitle");
+      if (targetTab === "doctor") {
+        sub.textContent = "Enter Doctor PIN (or Admin PIN) to open Doctor Tablet EHR";
+      } else if (targetTab === "saas") {
+        sub.textContent = "Enter Vendor Admin PIN to open SaaS Pricing & Setup";
+      } else {
+        sub.textContent = "Enter Doctor or Admin PIN to unlock all tabs, or click Re-Lock";
+      }
+      document.getElementById("pinInputField").value = "";
+      document.getElementById("pinModal").classList.remove("hidden");
+      setTimeout(() => document.getElementById("pinInputField").focus(), 50);
+    }
+
+    function closePinModal() {
+      document.getElementById("pinModal").classList.add("hidden");
+    }
+
+    function updatePinLockBadge() {
+      const el = document.getElementById("pinLockStateText");
+      if (!el) return;
+      if (unlockedRoles.doctor && unlockedRoles.saas) {
+        el.textContent = "All Unlocked";
+      } else if (unlockedRoles.doctor) {
+        el.textContent = "Doctor Unlocked";
+      } else {
+        el.textContent = "Armed";
+      }
+    }
+
+    function lockAllRolesNow() {
+      unlockedRoles = { doctor: false, saas: false };
+      updatePinLockBadge();
+      closePinModal();
+      switchTab("frontdesk", true);
+      showToast("Locked Doctor EHR & SaaS Admin tabs with PIN protection.");
+    }
+
+    function submitPinVerification(e) {
+      e.preventDefault();
+      const entered = document.getElementById("pinInputField").value.trim();
+      const docPin = (state.saasConfig && state.saasConfig.doctorPin) || "1234";
+      const admPin = (state.saasConfig && state.saasConfig.adminPin) || "9999";
+
+      if (entered === admPin) {
+        unlockedRoles.doctor = true;
+        unlockedRoles.saas = true;
+        updatePinLockBadge();
+        closePinModal();
+        showToast("Vendor Admin & Doctor access unlocked.");
+        if (pendingTargetTab === "doctor" || pendingTargetTab === "saas") {
+          switchTab(pendingTargetTab, true);
+        }
+        return;
+      }
+
+      if (entered === docPin && pendingTargetTab !== "saas") {
+        unlockedRoles.doctor = true;
+        updatePinLockBadge();
+        closePinModal();
+        showToast("Doctor Tablet EHR unlocked.");
+        if (pendingTargetTab === "doctor") {
+          switchTab("doctor", true);
+        }
+        return;
+      }
+
+      showToast("Incorrect PIN. Check the default PIN hint below the input box.");
+    }
+
+    // --- Multi-Device Cloud Database Sync (Firebase Realtime DB / REST JSON) ---
+    function openCloudSyncModal() {
+      document.getElementById("cloudEndpointInput").value = (state.saasConfig && state.saasConfig.cloudEndpoint) || "";
+      document.getElementById("cloudRoomIdInput").value = (state.saasConfig && state.saasConfig.cloudRoomId) || "clinic_main_01";
+      document.getElementById("configDocPinInput").value = (state.saasConfig && state.saasConfig.doctorPin) || "1234";
+      document.getElementById("configAdminPinInput").value = (state.saasConfig && state.saasConfig.adminPin) || "9999";
+      document.getElementById("cloudSyncModal").classList.remove("hidden");
+    }
+
+    function closeCloudSyncModal() {
+      document.getElementById("cloudSyncModal").classList.add("hidden");
+    }
+
+    function getRemoteCloudUrl() {
+      const ep = ((state.saasConfig && state.saasConfig.cloudEndpoint) || "").trim().replace(/\/+$/, "");
+      const room = ((state.saasConfig && state.saasConfig.cloudRoomId) || "clinic_main_01").trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+      if (!ep) return "";
+      if (ep.includes("firebaseio.com") || ep.includes("firebasedatabase.app")) {
+        return `${ep}/zeroline_${room}.json`;
+      }
+      return `${ep}/${room}`;
+    }
+
+    async function pushToRemoteCloud() {
+      const url = getRemoteCloudUrl();
+      if (!url) return;
+      try {
+        await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(state)
+        });
+        document.getElementById("licenseBadge").textContent = "Live Cloud DB Synced";
+      } catch (err) {
+        // Silent fallback when offline
+      }
+    }
+
+    async function pullFromRemoteCloud(manual) {
+      const url = getRemoteCloudUrl();
+      if (!url) {
+        if (manual) showToast("Enter a Firebase Realtime DB URL first to pull across separate devices.");
+        return;
+      }
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const remoteData = await res.json();
+        if (remoteData && remoteData.patients && remoteData.queue) {
+          const remoteTs = (remoteData.saasConfig && remoteData.saasConfig.updatedAt) || 0;
+          const localTs = (state.saasConfig && state.saasConfig.updatedAt) || 0;
+          if (manual || remoteTs > localTs) {
+            state = remoteData;
+            try {
+              localStorage.setItem("zero_line_clinic_cloud_v1", JSON.stringify(state));
+            } catch (e) {}
+            renderAll();
+            if (manual) showToast("Pulled latest clinic queue & EHR from Cloud DB!");
+          }
+        } else if (manual) {
+          await pushToRemoteCloud();
+          showToast("Initialized remote Cloud DB with current clinic state!");
+        }
+      } catch (err) {
+        if (manual) showToast("Could not reach Cloud URL. Verify your Firebase DB URL & rules.");
+      }
+    }
+
+    function saveCloudSyncSettings() {
+      if (!state.saasConfig) state.saasConfig = {};
+      state.saasConfig.cloudEndpoint = document.getElementById("cloudEndpointInput").value.trim();
+      state.saasConfig.cloudRoomId = document.getElementById("cloudRoomIdInput").value.trim() || "clinic_main_01";
+      state.saasConfig.doctorPin = document.getElementById("configDocPinInput").value.trim() || "1234";
+      state.saasConfig.adminPin = document.getElementById("configAdminPinInput").value.trim() || "9999";
+      saveState();
+      closeCloudSyncModal();
+      if (state.saasConfig.cloudEndpoint) {
+        pullFromRemoteCloud(true);
+      } else {
+        showToast("Saved Role PINs & Same-Device Multi-Tab Sync settings.");
+      }
+    }
+
+    setInterval(() => {
+      if (state.saasConfig && state.saasConfig.cloudEndpoint) {
+        pullFromRemoteCloud(false);
+      }
+    }, 4000);
+
     function previewWhatsAppToken(tokenStr) {
+      currentPreviewToken = tokenStr;
       const item = state.queue.find((q) => q.token === tokenStr);
       if (!item) return;
       const p = state.patients[item.cloudId];
@@ -1143,7 +1484,7 @@
       const lifetimePrice = parseInt(document.getElementById("saasLifetimePrice").value, 10) || 0;
       const clientCount = parseInt(document.getElementById("saasClientCount").value, 10) || 1;
 
-      state.saasConfig = { brandName, currency, monthlyPrice, lifetimePrice, clientCount };
+      state.saasConfig = Object.assign({}, state.saasConfig || {}, { brandName, currency, monthlyPrice, lifetimePrice, clientCount });
       saveState();
       populateFormularyDropdown();
       renderAll();
@@ -1187,9 +1528,12 @@
                 <span class="inline-block mt-1 text-[11px] font-semibold ${isConsult ? 'text-blue-400' : 'text-amber-400'}">${statusText}</span>
               </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="sendRealWhatsApp('${item.token}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold shadow-sm">
+                📲 Send WhatsApp
+              </button>
               <button type="button" onclick="previewWhatsAppToken('${item.token}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 text-xs font-semibold">
-                Preview WhatsApp
+                Preview
               </button>
               <button type="button" onclick="openDoctorForToken('${item.token}')" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-semibold">
                 Open EHR
