@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <title>Zero-Line Clinic Hub — Cloud EHR & Queue System</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #000000; color: #f4f4f5; }
+    input, select { background-color: #09090b !important; color: #f4f4f5 !important; border-color: #27272a !important; }
+    input::placeholder { color: #71717a !important; }
+    input:focus, select:focus { border-color: #14b8a6 !important; }
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { background-color: #ffffff !important; color: #000000 !important; }
+    }
+  </style>
+</head>
+<body class="bg-black text-zinc-100 min-h-screen flex flex-col">
+
+  <!-- Top Navigation & SaaS Tenant Bar -->
+  <header class="bg-black text-zinc-100 border-b border-zinc-800 shadow-md no-print">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-teal-500 flex items-center justify-center font-bold text-lg shadow-inner">ZL</div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 id="clinicTitleDisplay" class="font-bold text-lg tracking-tight">Zero-Line Clinic Hub</h1>
+            <span id="licenseBadge" class="text-xs bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 px-2 py-0.5 rounded-full font-medium">Cloud Sync Active</span>
+          </div>
+          <p class="text-xs text-teal-200">Unified Front Desk • Cloud Patient ID • Doctor Tablet • Pharmacy Dispatch</p>
+        </div>
+      </div>
+
+      <!-- Role / View Switcher -->
+      <nav class="flex flex-wrap items-center gap-1.5 bg-zinc-950 p-1.5 rounded-xl border border-zinc-800">
+        <button id="tabBtn-frontdesk" onclick="switchTab('frontdesk')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-500 text-white transition">
+          1. Front Desk & Token
+        </button>
+        <button id="tabBtn-doctor" onclick="switchTab('doctor')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-teal-200 hover:text-white transition">
+          2. Doctor Tablet (EHR)
+        </button>
+        <button id="tabBtn-pharmacy" onclick="switchTab('pharmacy')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-teal-200 hover:text-white transition">
+          3. Pharmacy & 1-Stop Exit
+        </button>
+        <button id="tabBtn-cloud" onclick="switchTab('cloud')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-teal-200 hover:text-white transition">
+          Cloud ID Directory
+        </button>
+        <button id="tabBtn-saas" onclick="switchTab('saas')" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-300 hover:text-amber-100 transition">
+          SaaS Pricing & Install
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Live Pipeline Status Strip -->
+  <div class="bg-zinc-950 border-b border-zinc-800 no-print">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div class="flex flex-wrap items-center gap-4">
+        <span class="font-semibold text-zinc-400 uppercase tracking-wider">Live Clinic Flow:</span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/70 text-amber-300 border border-amber-800 font-medium">
+          Waiting Remote/Lobby: <strong id="countWaiting">0</strong>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-950/70 text-blue-300 border border-blue-800 font-medium">
+          In Doctor Room: <strong id="countInConsult">0</strong>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-950/70 text-purple-300 border border-purple-800 font-medium">
+          Pharmacy Packing / Billing: <strong id="countPharmacy">0</strong>
+        </span>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/70 text-emerald-300 border border-emerald-800 font-medium">
+          Completed Today: <strong id="countCompleted">0</strong>
+        </span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="installPwaBtn" onclick="openInstallModal()" class="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-medium transition">
+          Install App on Any OS
+        </button>
+        <button id="exportCloudBtn" onclick="exportCloudData()" class="px-2.5 py-1 rounded-lg bg-teal-950 hover:bg-teal-900 text-teal-200 font-medium border border-teal-800 transition">
+          Export Cloud Backup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Banner -->
+  <div id="toastBanner" class="hidden fixed bottom-5 right-5 z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-700 text-sm flex items-center justify-between gap-3">
+    <span id="toastText">Notification</span>
+    <button id="closeToastBtn" onclick="hideToast()" class="text-zinc-500 hover:text-white text-xs font-bold">✕</button>
+  </div>
+
+  <!-- Main Workspace -->
+  <main class="max-w-7xl mx-auto w-full flex-1 px-4 py-6">
+
+    <!-- TAB 1: FRONT DESK & WHATSAPP TOKEN TRACKER -->
+    <section id="view-frontdesk" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Patient Check-In & Unique Cloud ID Lookup -->
+        <div class="lg:col-span-5 bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-zinc-100">Patient Check-In & Cloud ID Lookup</h2>
+              <p class="text-xs text-zinc-400">Search by Phone or Unique Cloud ID (e.g., <code class="bg-zinc-900 text-teal-300 px-1 rounded">CLD-1001</code>)</p>
+            </div>
+            <span class="text-xs font-semibold text-teal-300 bg-teal-950 px-2.5 py-1 rounded-lg border border-teal-800">Step 1</span>
+          </div>
+
+          <div class="flex gap-2">
+            <input id="lookupInput" type="text" placeholder="Enter phone (9876543210) or ID (CLD-1001)..." oninput="handlePatientLookup(this.value)" class="flex-1 rounded-xl border border-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            <button id="newPatientResetBtn" onclick="resetCheckInForm()" class="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-slate-200 text-xs font-semibold text-zinc-200 transition">Clear</button>
+          </div>
+
+          <div id="lookupMatchNotice" class="hidden p-3 rounded-xl bg-emerald-950/70 border border-emerald-800 text-xs text-emerald-200 space-y-1">
+            <div class="font-bold flex items-center justify-between">
+              <span id="matchedPatientBanner">Existing Cloud EHR Found</span>
+              <span id="matchedCloudIdBadge" class="bg-emerald-700 text-white px-2 py-0.5 rounded font-mono">CLD-1001</span>
+            </div>
+            <p id="matchedPatientSummary" class="text-emerald-400"></p>
+          </div>
+
+          <form id="checkInForm" onsubmit="submitCheckIn(event)" class="space-y-3">
+            <input type="hidden" id="formCloudId" value="" />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Full Name *</label>
+                <input id="formName" type="text" required placeholder="e.g. Aarav Sharma" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Phone (WhatsApp) *</label>
+                <input id="formPhone" type="tel" required placeholder="e.g. 9876543210" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Age *</label>
+                <input id="formAge" type="number" min="0" max="120" required placeholder="34" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Blood Group</label>
+                <select id="formBlood" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm bg-white">
+                  <option value="O+">O+</option>
+                  <option value="A+">A+</option>
+                  <option value="B+">B+</option>
+                  <option value="AB+">AB+</option>
+                  <option value="O-">O-</option>
+                  <option value="A-">A-</option>
+                  <option value="B-">B-</option>
+                  <option value="AB-">AB-</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Vitals (BP / Temp)</label>
+                <input id="formVitals" type="text" placeholder="120/80, 98.6°F" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Known Allergies (Saved to Cloud ID)</label>
+              <input id="formAllergies" type="text" placeholder="e.g. Penicillin, Sulfa, None" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Chronic Conditions / Medical Notes</label>
+              <input id="formConditions" type="text" placeholder="e.g. Type 2 Diabetes, Hypertension" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Today's Chief Complaint *</label>
+              <input id="formComplaint" type="text" required placeholder="e.g. High fever and sore throat for 2 days" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+            </div>
+
+            <button id="issueTokenSubmitBtn" type="submit" class="w-full py-2.5 px-4 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-semibold text-sm shadow transition">
+              Assign Unique Cloud ID & Issue Live WhatsApp Token
+            </button>
+          </form>
+        </div>
+
+        <!-- Live Waiting Queue & WhatsApp Remote Tracker Simulator -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+              <div>
+                <h2 class="text-base font-bold text-zinc-100">Zero-Line Live Token Queue</h2>
+                <p class="text-xs text-zinc-400">Patients wait at home and receive automated WhatsApp alerts 10 mins before their turn.</p>
+              </div>
+              <button id="callNextPatientBtn" onclick="sendNextToDoctor()" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition">
+                Send Next Token to Doctor →
+              </button>
+            </div>
+
+            <div id="frontDeskQueueList" class="space-y-2.5"></div>
+          </div>
+
+          <!-- Simulated Patient WhatsApp Live Token Screen -->
+          <div class="bg-emerald-950 text-white rounded-2xl shadow-sm border border-emerald-800 p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-300">Patient WhatsApp Live Token Preview</h3>
+              </div>
+              <span id="waPreviewPhone" class="text-xs font-mono text-emerald-200">Select a token above</span>
+            </div>
+            <div id="waPreviewBox" class="bg-emerald-900/70 border border-emerald-700/60 rounded-xl p-3.5 text-xs space-y-1.5 text-emerald-50 font-mono">
+              Click "Preview WhatsApp" on any waiting token to inspect the live mobile tracker link and 10-minute arrival alert sent to the patient's phone.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: DOCTOR TABLET (CLOUD EHR & DIGITAL Rx) -->
+    <section id="view-doctor" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left: Active Patient Queue & Cloud EHR History -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <h2 class="text-base font-bold text-zinc-100">Doctor's Active Patient</h2>
+              <span class="text-xs font-semibold text-blue-300 bg-blue-950 px-2.5 py-1 rounded-lg border border-blue-800">Step 2</span>
+            </div>
+            <select id="doctorPatientSelect" onchange="selectDoctorPatient(this.value)" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm bg-white font-medium"></select>
+          </div>
+
+          <!-- Instant Cloud EHR Profile Card -->
+          <div id="doctorEhrCard" class="bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+            <div class="flex items-start justify-between gap-2 border-b border-zinc-800 pb-3">
+              <div>
+                <span id="docEhrCloudId" class="inline-block text-xs font-mono font-bold bg-teal-900 text-white px-2.5 py-0.5 rounded mb-1">CLD ----</span>
+                <h3 id="docEhrName" class="text-lg font-bold text-zinc-100">No Patient Selected</h3>
+                <p id="docEhrMeta" class="text-xs text-zinc-400">Select a checked-in patient from the dropdown above.</p>
+              </div>
+              <div id="docEhrTokenBadge" class="text-right"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 text-xs">
+              <div class="p-2.5 rounded-xl bg-rose-950/60 border border-rose-800">
+                <span class="font-bold text-rose-300 block">Allergies Alert:</span>
+                <span id="docEhrAllergies" class="text-rose-200 font-semibold">—</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-amber-950/60 border border-amber-800">
+                <span class="font-bold text-amber-300 block">Chronic Conditions:</span>
+                <span id="docEhrConditions" class="text-amber-200">—</span>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs space-y-1">
+              <div class="flex justify-between">
+                <span class="font-semibold text-zinc-300">Today's Complaint:</span>
+                <span id="docEhrVitals" class="font-mono text-zinc-300"></span>
+              </div>
+              <p id="docEhrComplaint" class="text-zinc-100 font-medium">—</p>
+            </div>
+
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Cloud EHR Past Visits (Lifetime Record)</h4>
+              <div id="docEhrHistoryList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Digital Prescription Builder & 1-Tap Complete -->
+        <div class="lg:col-span-7 bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-zinc-100">Error-Free Digital Prescription & Zero-Line Dispatch</h2>
+              <p class="text-xs text-zinc-400">Select medicines from standardized formulary — auto-checks allergies, calculates bill, and alerts pharmacy.</p>
+            </div>
+          </div>
+
+          <div id="allergyWarningBanner" class="hidden p-3 rounded-xl bg-rose-600 text-white text-xs font-semibold flex items-center justify-between">
+            <span id="allergyWarningText">Allergy conflict detected!</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Clinical Diagnosis *</label>
+              <input id="rxDiagnosis" type="text" placeholder="e.g. Acute Viral Pharyngitis" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Consultation Fee</label>
+              <input id="rxConsultFee" type="number" min="0" value="500" oninput="renderDraftRxList()" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+            </div>
+          </div>
+
+          <!-- Standardized Medicine Selector -->
+          <div class="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-3">
+            <label class="block text-xs font-bold text-zinc-200 uppercase tracking-wider">Add Medicine from Formulary</label>
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+              <div class="sm:col-span-5">
+                <select id="medSelectDropdown" class="w-full rounded-xl border border-zinc-800 px-2.5 py-2 text-xs bg-white"></select>
+              </div>
+              <div class="sm:col-span-3">
+                <select id="medDosageDropdown" class="w-full rounded-xl border border-zinc-800 px-2.5 py-2 text-xs bg-white">
+                  <option value="1-0-1 (After Meals)">1-0-1 (After Meals)</option>
+                  <option value="1-1-1 (After Meals)">1-1-1 (After Meals)</option>
+                  <option value="0-0-1 (Bedtime)">0-0-1 (Bedtime)</option>
+                  <option value="1-0-0 (Morning Empty Stomach)">1-0-0 (Morning)</option>
+                  <option value="SOS (As Needed)">SOS (As Needed)</option>
+                </select>
+              </div>
+              <div class="sm:col-span-2">
+                <input id="medDaysInput" type="number" min="1" max="90" value="5" placeholder="Days" class="w-full rounded-xl border border-zinc-800 px-2.5 py-2 text-xs" />
+              </div>
+              <div class="sm:col-span-2">
+                <button id="addMedicineBtn" type="button" onclick="addMedicineToRx()" class="w-full h-full py-2 px-3 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs transition">
+                  + Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Current Prescription Items Table -->
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Selected Medicines & Auto-Priced Pharmacy Slip</h3>
+            <div id="rxDraftTableContainer" class="border border-zinc-800 rounded-xl overflow-hidden"></div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-zinc-300 mb-1">Doctor's Advice / Follow-Up Notes</label>
+            <input id="rxNotes" type="text" placeholder="e.g. Drink warm fluids, rest for 3 days, review if fever persists." class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+          </div>
+
+          <div class="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800">
+            <div class="text-sm">
+              <span class="text-zinc-400">Estimated Total Bill:</span>
+              <strong id="rxTotalPreview" class="text-lg text-teal-300 ml-1">₹500</strong>
+            </div>
+            <button id="completeConsultBtn" type="button" onclick="completeConsultation()" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition">
+              ✓ Consultation Complete (Sync Cloud EHR + Alert Pharmacy & Desk)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: PHARMACY & FRONT DESK 1-STOP EXIT -->
+    <section id="view-pharmacy" class="hidden space-y-6">
+      <div class="bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+          <div>
+            <h2 class="text-base font-bold text-zinc-100">Zero-Line Pharmacy Packing & Single-Window Billing Counter</h2>
+            <p class="text-xs text-zinc-400">The moment the doctor taps "Consultation Complete", orders appear here automatically. Pack the bag, collect 1 payment, and hand over.</p>
+          </div>
+          <span class="text-xs font-semibold text-purple-300 bg-purple-950 px-2.5 py-1 rounded-lg border border-purple-800">Step 3 • Zero Queue Exit</span>
+        </div>
+
+        <div id="pharmacyDispatchList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: CLOUD PATIENT ID DIRECTORY (LIFETIME EHR) -->
+    <section id="view-cloud" class="hidden space-y-6">
+      <div class="bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+          <div>
+            <h2 class="text-base font-bold text-zinc-100">Cloud Patient ID Directory & Lifetime Health Records</h2>
+            <p class="text-xs text-zinc-400">Every patient receives a permanent Unique Cloud ID (<code class="bg-zinc-900 text-teal-300 px-1 rounded">CLD-XXXX</code>) storing all allergies, vitals, diagnoses, and prescriptions.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="cloudSearchInput" type="text" placeholder="Filter by Unique ID, Name, or Phone..." oninput="renderCloudDirectory()" class="rounded-xl border border-zinc-800 px-3 py-1.5 text-xs w-64" />
+          </div>
+        </div>
+
+        <div id="cloudDirectoryList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: COMMERCIAL SAAS WHITE-LABEL PRICING & OS INSTALL -->
+    <section id="view-saas" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Custom Pricing & White-Label Controls (For Selling the Software) -->
+        <div class="lg:col-span-6 bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+          <div class="border-b border-zinc-800 pb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-600">Commercial Vendor Control Panel</span>
+            <h2 class="text-base font-bold text-zinc-100">Sell This Software at Your Own Price</h2>
+            <p class="text-xs text-zinc-400">Customize your clinic client's brand name, currency, and your monthly/one-time selling price to generate client-ready proposals.</p>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-zinc-300 mb-1">Your Software Brand / Clinic Client Name</label>
+              <input id="saasBrandName" type="text" value="Zero-Line Clinic Hub Pro" oninput="updateSaasPricingConfig()" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Currency Symbol</label>
+                <select id="saasCurrency" onchange="updateSaasPricingConfig()" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm bg-white">
+                  <option value="₹">₹ (INR)</option>
+                  <option value="$">$ (USD)</option>
+                  <option value="€">€ (EUR)</option>
+                  <option value="£">£ (GBP)</option>
+                  <option value="AED ">AED (Dirham)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Monthly SaaS Subscription Price</label>
+                <input id="saasMonthlyPrice" type="number" min="0" value="4999" oninput="updateSaasPricingConfig()" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Lifetime / Annual License Price</label>
+                <input id="saasLifetimePrice" type="number" min="0" value="49999" oninput="updateSaasPricingConfig()" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-zinc-300 mb-1">Number of Clinic Prospects</label>
+                <input id="saasClientCount" type="number" min="1" value="25" oninput="updateSaasPricingConfig()" class="w-full rounded-xl border border-zinc-800 px-3 py-2 text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-teal-950 text-white space-y-2">
+            <div class="text-xs text-teal-300 font-semibold uppercase tracking-wider">Projected Vendor Revenue Calculator</div>
+            <div class="grid grid-cols-2 gap-4 pt-1">
+              <div>
+                <span class="text-xs text-teal-200 block">Monthly Recurring (MRR)</span>
+                <strong id="calcMrrDisplay" class="text-xl font-bold text-emerald-400">₹1,24,975/mo</strong>
+              </div>
+              <div>
+                <span class="text-xs text-teal-200 block">Annual Recurring (ARR)</span>
+                <strong id="calcArrDisplay" class="text-xl font-bold text-amber-300">₹14,99,700/yr</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client-Facing Pricing Card Preview & Cross-OS Installation Guide -->
+        <div class="lg:col-span-6 space-y-4">
+          <div class="bg-zinc-950 rounded-2xl shadow-lg border border-zinc-800 p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-teal-700">Live Client Offer Preview</span>
+              <span class="text-xs bg-emerald-950 text-emerald-300 border border-emerald-800 px-2.5 py-0.5 rounded-full font-semibold">Ready to Sell</span>
+            </div>
+            <h3 id="previewPlanTitle" class="text-lg font-bold text-zinc-100">Zero-Line Clinic Hub Pro</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="p-4 rounded-xl border-2 border-teal-500 bg-teal-950/40 space-y-1">
+                <span class="text-xs font-bold text-teal-300 uppercase">Cloud SaaS Plan</span>
+                <div id="previewMonthlyTag" class="text-2xl font-extrabold text-zinc-100">₹4,999<span class="text-xs font-normal text-zinc-400">/month</span></div>
+                <p class="text-xs text-zinc-300">Unlimited Unique Cloud Patient IDs, WhatsApp Live Token Tracker, Doctor EHR & Pharmacy Sync.</p>
+              </div>
+              <div class="p-4 rounded-xl border border-zinc-800 bg-zinc-900 space-y-1">
+                <span class="text-xs font-bold text-zinc-200 uppercase">Full Clinic License</span>
+                <div id="previewLifetimeTag" class="text-2xl font-extrabold text-zinc-100">₹49,999<span class="text-xs font-normal text-zinc-400">/perpetual</span></div>
+                <p class="text-xs text-zinc-300">Complete white-label clinic installation on Windows, macOS, Linux, Android & iPadOS.</p>
+              </div>
+            </div>
+
+            <div class="border-t border-zinc-800 pt-3 space-y-2 text-xs text-zinc-300">
+              <div class="font-bold text-zinc-100">Install on Any Operating System (PWA Web App):</div>
+              <p>• <strong>Windows / macOS / Linux:</strong> Open in Chrome or Edge and click the <em>"Install App"</em> icon in the address bar to run in a standalone desktop window with offline cache.</p>
+              <p>• <strong>iPadOS / iOS (Doctor Tablet):</strong> Open in Safari → Tap <em>Share</em> → <em>Add to Home Screen</em>.</p>
+              <p>• <strong>Android Tablets & Phones:</strong> Open in Chrome → Tap <em>Install App</em> prompt.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Printable Digital Prescription & Single-Window Receipt Modal -->
+  <div id="slipModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-zinc-950 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-zinc-800 text-zinc-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div>
+          <h3 id="slipClinicHeader" class="font-bold text-base text-teal-200">Zero-Line Clinic Hub</h3>
+          <p class="text-xs text-zinc-400">Digital Prescription & Single-Window Paid Receipt</p>
+        </div>
+        <button id="closeSlipModalBtn" onclick="closeSlipModal()" class="text-zinc-500 hover:text-zinc-200 font-bold text-sm no-print">✕</button>
+      </div>
+      <div id="slipModalContent" class="text-xs space-y-3"></div>
+      <div class="flex justify-end gap-2 pt-3 border-t border-zinc-800 no-print">
+        <button id="printSlipBtn" onclick="window.print()" class="px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold">Print / Save PDF</button>
+        <button id="doneSlipBtn" onclick="closeSlipModal()" class="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-semibold">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Install on Any OS Modal -->
+  <div id="installModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-zinc-950 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-zinc-800 text-zinc-100 space-y-4">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <h3 class="font-bold text-base text-zinc-100">Install Clinic Hub on Any OS</h3>
+        <button id="closeInstallModalBtn" onclick="closeInstallModal()" class="text-zinc-500 hover:text-zinc-200 font-bold text-sm">✕</button>
+      </div>
+      <div class="text-xs text-zinc-300 space-y-2.5">
+        <p>This software is built with a Progressive Web App (PWA) manifest and service worker so clinics can install it natively on any device:</p>
+        <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1">
+          <div class="font-bold text-zinc-100">1. Windows, macOS & Linux Desktop</div>
+          <p>Click the <strong>Install icon (+)</strong> on the right side of your Chrome/Edge address bar. It launches from your Desktop/Dock in its own window.</p>
+        </div>
+        <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1">
+          <div class="font-bold text-zinc-100">2. Doctor's iPad / Android Tablet</div>
+          <p>On iPad Safari, tap <strong>Share → Add to Home Screen</strong>. On Android Chrome, tap <strong>Menu → Add to Home Screen</strong>.</p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="triggerNativeInstallBtn" onclick="triggerNativePwaInstall()" class="px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold">Trigger Browser Install</button>
+        <button id="dismissInstallBtn" onclick="closeInstallModal()" class="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-semibold">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- PWA Manifest & Service Worker Setup for Cross-OS Installation ---
+    let deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+    });
+
+    (function injectPwaManifest() {
+      try {
+        const manifest = {
+          name: "Zero-Line Clinic Hub",
+          short_name: "ZeroLineHub",
+          start_url: ".",
+          display: "standalone",
+          background_color: "#000000",
+          theme_color: "#000000",
+          icons: [{
+            src: "data:image/svg+xml;base64," + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#0f766e"/><text x="50" y="64" font-family="Arial" font-size="44" font-weight="bold" fill="#ffffff" text-anchor="middle">ZL</text></svg>'),
+            sizes: "192x192",
+            type: "image/svg+xml"
+          }]
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = URL.createObjectURL(blob);
+        document.head.appendChild(link);
+      } catch (err) {
+        // Ignore in restricted sandboxed environments
+      }
+    })();
+
+    // --- Standardized Medicine Formulary (Error-Free Dropdown) ---
+    const FORMULARY = [
+      { id: "MED-01", name: "Paracetamol 650mg Tab", activeClass: "Acetaminophen", unitPrice: 30 },
+      { id: "MED-02", name: "Amoxicillin + Clavulanate 625mg Tab", activeClass: "Penicillin", unitPrice: 180 },
+      { id: "MED-03", name: "Azithromycin 500mg Tab", activeClass: "Macrolide", unitPrice: 120 },
+      { id: "MED-04", name: "Cetirizine 10mg Tab", activeClass: "Antihistamine", unitPrice: 25 },
+      { id: "MED-05", name: "Pantoprazole 40mg Tab", activeClass: "PPI", unitPrice: 65 },
+      { id: "MED-06", name: "Metformin 500mg SR Tab", activeClass: "Biguanide", unitPrice: 55 },
+      { id: "MED-07", name: "Ibuprofen 400mg Tab", activeClass: "NSAID", unitPrice: 40 },
+      { id: "MED-08", name: "Cotrimoxazole DS Tab", activeClass: "Sulfa", unitPrice: 45 }
+    ];
+
+    // --- Initial Seed Cloud Database (Patients + Live Queue) ---
+    const DEFAULT_STATE = {
+      saasConfig: {
+        brandName: "Zero-Line Clinic Hub Pro",
+        currency: "₹",
+        monthlyPrice: 4999,
+        lifetimePrice: 49999,
+        clientCount: 25
+      },
+      nextTokenNum: 104,
+      nextCloudSeq: 1004,
+      patients: {
+        "CLD-1001": {
+          cloudId: "CLD-1001",
+          name: "Aarav Sharma",
+          phone: "9876543210",
+          age: 38,
+          blood: "O+",
+          allergies: "Penicillin",
+          conditions: "Mild Asthma",
+          history: [
+            {
+              date: "2026-08-14",
+              diagnosis: "Seasonal Allergic Rhinitis",
+              vitals: "118/78, 98.4°F",
+              medicines: ["Cetirizine 10mg Tab (0-0-1 for 5d)"],
+              notes: "Avoid dust exposure",
+              totalBill: 525
+            }
+          ]
+        },
+        "CLD-1002": {
+          cloudId: "CLD-1002",
+          name: "Meera Nair",
+          phone: "9811122233",
+          age: 52,
+          blood: "B+",
+          allergies: "Sulfa",
+          conditions: "Type 2 Diabetes, Hypertension",
+          history: [
+            {
+              date: "2026-09-20",
+              diagnosis: "Routine Glycemic Review",
+              vitals: "130/84, 98.6°F",
+              medicines: ["Metformin 500mg SR Tab (1-0-1 for 30d)"],
+              notes: "Continue morning walk",
+              totalBill: 665
+            }
+          ]
+        },
+        "CLD-1003": {
+          cloudId: "CLD-1003",
+          name: "Rohan Deshmukh",
+          phone: "9822233344",
+          age: 29,
+          blood: "A+",
+          allergies: "None",
+          conditions: "None",
+          history: []
+        }
+      },
+      queue: [
+        {
+          token: "T-101",
+          cloudId: "CLD-1001",
+          complaint: "High fever, throat pain & body ache since yesterday",
+          vitals: "122/80, 101.2°F",
+          status: "IN_CONSULT", // WAITING, IN_CONSULT, PHARMACY_READY, COMPLETED
+          checkInTime: "10:15 AM",
+          diagnosis: "",
+          consultFee: 500,
+          medicines: [],
+          notes: "",
+          packed: false,
+          paid: false
+        },
+        {
+          token: "T-102",
+          cloudId: "CLD-1002",
+          complaint: "Acid reflux and fatigue for 3 days",
+          vitals: "128/82, 98.6°F",
+          status: "WAITING",
+          checkInTime: "10:25 AM",
+          diagnosis: "",
+          consultFee: 500,
+          medicines: [],
+          notes: "",
+          packed: false,
+          paid: false
+        },
+        {
+          token: "T-103",
+          cloudId: "CLD-1003",
+          complaint: "Viral headache and mild cough",
+          vitals: "118/76, 99.4°F",
+          status: "PHARMACY_READY",
+          checkInTime: "09:50 AM",
+          diagnosis: "Acute Upper Respiratory Viral Fever",
+          consultFee: 500,
+          medicines: [
+            { name: "Paracetamol 650mg Tab", dosage: "1-0-1 (After Meals)", days: 5, price: 30 },
+            { name: "Cetirizine 10mg Tab", dosage: "0-0-1 (Bedtime)", days: 5, price: 25 }
+          ],
+          notes: "Steam inhalation twice daily.",
+          packed: true,
+          paid: false
+        }
+      ]
+    };
+
+    let state = loadState();
+    let activeDoctorToken = "T-101";
+    let draftRxMedicines = [];
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem("zero_line_clinic_cloud_v1");
+        if (raw) {
+          return JSON.parse(raw);
+        }
+      } catch (e) {
+        // Fallback to in-memory
+      }
+      return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem("zero_line_clinic_cloud_v1", JSON.stringify(state));
+      } catch (e) {
+        // Ignore storage errors in sandboxed frames
+      }
+    }
+
+    function showToast(msg) {
+      const banner = document.getElementById("toastBanner");
+      const text = document.getElementById("toastText");
+      text.textContent = msg;
+      banner.classList.remove("hidden");
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        banner.classList.add("hidden");
+      }, 4000);
+    }
+
+    function hideToast() {
+      document.getElementById("toastBanner").classList.add("hidden");
+    }
+
+    // --- Tab Navigation ---
+    function switchTab(tabName) {
+      const tabs = ["frontdesk", "doctor", "pharmacy", "cloud", "saas"];
+      tabs.forEach((t) => {
+        const view = document.getElementById("view-" + t);
+        const btn = document.getElementById("tabBtn-" + t);
+        if (t === tabName) {
+          view.classList.remove("hidden");
+          btn.className = "tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-500 text-white transition";
+        } else {
+          view.classList.add("hidden");
+          btn.className = "tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold " + (t === "saas" ? "text-amber-300 hover:text-amber-100" : "text-teal-200 hover:text-white") + " transition";
+        }
+      });
+      renderAll();
+    }
+
+    // --- Front Desk Lookup & Check-In ---
+    function handlePatientLookup(query) {
+      const q = (query || "").trim().toUpperCase();
+      const notice = document.getElementById("lookupMatchNotice");
+      if (q.length < 3) {
+        notice.classList.add("hidden");
+        return;
+      }
+      const match = Object.values(state.patients).find(
+        (p) => p.cloudId.toUpperCase() === q || p.phone.includes(q) || p.name.toUpperCase().includes(q)
+      );
+      if (match) {
+        notice.classList.remove("hidden");
+        document.getElementById("matchedCloudIdBadge").textContent = match.cloudId;
+        document.getElementById("matchedPatientSummary").textContent =
+          `${match.name} (${match.age}y, ${match.blood}) • Allergies: ${match.allergies || "None"} • Past Visits: ${match.history.length}`;
+        document.getElementById("formCloudId").value = match.cloudId;
+        document.getElementById("formName").value = match.name;
+        document.getElementById("formPhone").value = match.phone;
+        document.getElementById("formAge").value = match.age;
+        document.getElementById("formBlood").value = match.blood;
+        document.getElementById("formAllergies").value = match.allergies;
+        document.getElementById("formConditions").value = match.conditions;
+      } else {
+        notice.classList.add("hidden");
+        document.getElementById("formCloudId").value = "";
+      }
+    }
+
+    function resetCheckInForm() {
+      document.getElementById("lookupInput").value = "";
+      document.getElementById("lookupMatchNotice").classList.add("hidden");
+      document.getElementById("formCloudId").value = "";
+      document.getElementById("checkInForm").reset();
+    }
+
+    function submitCheckIn(e) {
+      e.preventDefault();
+      let cloudId = document.getElementById("formCloudId").value.trim();
+      const name = document.getElementById("formName").value.trim();
+      const phone = document.getElementById("formPhone").value.trim();
+      const age = parseInt(document.getElementById("formAge").value, 10) || 30;
+      const blood = document.getElementById("formBlood").value;
+      const vitals = document.getElementById("formVitals").value.trim() || "120/80, 98.6°F";
+      const allergies = document.getElementById("formAllergies").value.trim() || "None";
+      const conditions = document.getElementById("formConditions").value.trim() || "None";
+      const complaint = document.getElementById("formComplaint").value.trim();
+
+      // Check if phone already exists in cloud directory
+      if (!cloudId) {
+        const existingByPhone = Object.values(state.patients).find((p) => p.phone === phone);
+        if (existingByPhone) {
+          cloudId = existingByPhone.cloudId;
+        } else {
+          cloudId = "CLD-" + state.nextCloudSeq;
+          state.nextCloudSeq += 1;
+        }
+      }
+
+      const existingHistory = state.patients[cloudId] ? state.patients[cloudId].history : [];
+      state.patients[cloudId] = {
+        cloudId,
+        name,
+        phone,
+        age,
+        blood,
+        allergies,
+        conditions,
+        history: existingHistory
+      };
+
+      const tokenStr = "T-" + state.nextTokenNum;
+      state.nextTokenNum += 1;
+
+      const hasActiveInConsult = state.queue.some((q) => q.status === "IN_CONSULT");
+      const newStatus = hasActiveInConsult ? "WAITING" : "IN_CONSULT";
+
+      const newQueueItem = {
+        token: tokenStr,
+        cloudId,
+        complaint,
+        vitals,
+        status: newStatus,
+        checkInTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        diagnosis: "",
+        consultFee: 500,
+        medicines: [],
+        notes: "",
+        packed: false,
+        paid: false
+      };
+
+      state.queue.push(newQueueItem);
+      if (newStatus === "IN_CONSULT") {
+        activeDoctorToken = tokenStr;
+      }
+
+      saveState();
+      resetCheckInForm();
+      renderAll();
+      previewWhatsAppToken(tokenStr);
+      showToast(`Assigned ${cloudId} & live WhatsApp token ${tokenStr} to ${name}`);
+    }
+
+    function previewWhatsAppToken(tokenStr) {
+      const item = state.queue.find((q) => q.token === tokenStr);
+      if (!item) return;
+      const p = state.patients[item.cloudId];
+      const waitingAhead = state.queue.filter(
+        (q) => q.status === "WAITING" && parseInt(q.token.split("-")[1], 10) < parseInt(item.token.split("-")[1], 10)
+      ).length + (state.queue.some((q) => q.status === "IN_CONSULT" && q.token !== item.token) ? 1 : 0);
+
+      const estMins = item.status === "IN_CONSULT" ? 0 : waitingAhead * 10;
+      const departAlert = estMins <= 10
+        ? "🚀 HEAD TO CLINIC NOW: Your turn is in ~10 mins (or active now). Walk straight in!"
+        : `🏠 WAIT AT HOME: ${waitingAhead} patient(s) ahead (~${estMins} mins). We will ping you 10 mins before your turn.`;
+
+      document.getElementById("waPreviewPhone").textContent = `WhatsApp → +91 ${p.phone}`;
+      document.getElementById("waPreviewBox").innerHTML = `
+        <div class="font-bold text-emerald-300">[${state.saasConfig.brandName}] Live Token Tracker</div>
+        <div>Hello <strong>${escapeHtml(p.name)}</strong> (Cloud ID: <span class="underline">${p.cloudId}</span>)</div>
+        <div>Your Live Token: <strong>${item.token}</strong> | Status: <strong>${item.status.replace("_", " ")}</strong></div>
+        <div class="text-amber-300 font-semibold">${departAlert}</div>
+        <div class="text-emerald-200/80">Live Tracker Link: https://zeroline.clinic/t/${item.token}-${p.cloudId}</div>
+      `;
+    }
+
+    function sendNextToDoctor() {
+      const currentInConsult = state.queue.find((q) => q.status === "IN_CONSULT");
+      if (currentInConsult) {
+        showToast(`Doctor is currently consulting ${currentInConsult.token}. Complete consultation first.`);
+        switchTab("doctor");
+        return;
+      }
+      const nextWaiting = state.queue.find((q) => q.status === "WAITING");
+      if (!nextWaiting) {
+        showToast("No waiting patients in the queue.");
+        return;
+      }
+      nextWaiting.status = "IN_CONSULT";
+      activeDoctorToken = nextWaiting.token;
+      saveState();
+      renderAll();
+      showToast(`Token ${nextWaiting.token} sent to Doctor's Tablet.`);
+    }
+
+    // --- Doctor Tablet Logic ---
+    function populateFormularyDropdown() {
+      const sel = document.getElementById("medSelectDropdown");
+      const cur = state.saasConfig.currency;
+      sel.innerHTML = FORMULARY.map(
+        (m) => `<option value="${m.id}">${m.name} [${m.activeClass}] — ${cur}${m.unitPrice}</option>`
+      ).join("");
+    }
+
+    function selectDoctorPatient(tokenStr) {
+      activeDoctorToken = tokenStr;
+      const item = state.queue.find((q) => q.token === tokenStr);
+      if (item) {
+        document.getElementById("rxDiagnosis").value = item.diagnosis || "";
+        document.getElementById("rxConsultFee").value = item.consultFee || 500;
+        document.getElementById("rxNotes").value = item.notes || "";
+        draftRxMedicines = item.medicines ? JSON.parse(JSON.stringify(item.medicines)) : [];
+      } else {
+        draftRxMedicines = [];
+      }
+      document.getElementById("allergyWarningBanner").classList.add("hidden");
+      renderDoctorView();
+    }
+
+    function addMedicineToRx() {
+      const item = state.queue.find((q) => q.token === activeDoctorToken);
+      if (!item) {
+        showToast("Select an active patient first.");
+        return;
+      }
+      const patient = state.patients[item.cloudId];
+      const medId = document.getElementById("medSelectDropdown").value;
+      const medObj = FORMULARY.find((m) => m.id === medId);
+      const dosage = document.getElementById("medDosageDropdown").value;
+      const days = parseInt(document.getElementById("medDaysInput").value, 10) || 5;
+
+      // Allergy guard check against Cloud EHR
+      const allergyStr = (patient.allergies || "").toLowerCase();
+      const banner = document.getElementById("allergyWarningBanner");
+      if (
+        allergyStr &&
+        allergyStr !== "none" &&
+        (allergyStr.includes(medObj.activeClass.toLowerCase()) ||
+          medObj.name.toLowerCase().includes(allergyStr))
+      ) {
+        banner.classList.remove("hidden");
+        document.getElementById("allergyWarningText").textContent =
+          `⚠️ CLOUD EHR ALLERGY BLOCK: ${patient.name} (${patient.cloudId}) has a recorded allergy to "${patient.allergies}". ${medObj.name} (${medObj.activeClass}) was blocked for patient safety.`;
+        return;
+      }
+      banner.classList.add("hidden");
+
+      draftRxMedicines.push({
+        name: medObj.name,
+        dosage,
+        days,
+        price: medObj.unitPrice * Math.max(1, Math.ceil(days / 5))
+      });
+      renderDraftRxList();
+    }
+
+    function removeDraftMedicine(idx) {
+      draftRxMedicines.splice(idx, 1);
+      renderDraftRxList();
+    }
+
+    function renderDraftRxList() {
+      const container = document.getElementById("rxDraftTableContainer");
+      const cur = state.saasConfig.currency;
+      const consultFee = parseInt(document.getElementById("rxConsultFee").value, 10) || 0;
+      const medTotal = draftRxMedicines.reduce((acc, m) => acc + m.price, 0);
+      const grandTotal = consultFee + medTotal;
+
+      document.getElementById("rxTotalPreview").textContent = `${cur}${grandTotal}`;
+
+      if (draftRxMedicines.length === 0) {
+        container.innerHTML = `<div class="p-4 text-center text-xs text-zinc-500">No medicines added yet. Use the dropdown above to add error-free digital prescriptions.</div>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-zinc-900 text-zinc-300 border-b border-zinc-800">
+              <th class="py-2 px-3">Medicine</th>
+              <th class="py-2 px-3">Dosage</th>
+              <th class="py-2 px-3">Duration</th>
+              <th class="py-2 px-3">Cost</th>
+              <th class="py-2 px-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${draftRxMedicines.map((m, idx) => `
+              <tr class="border-b border-zinc-800">
+                <td class="py-2 px-3 font-semibold text-zinc-100">${escapeHtml(m.name)}</td>
+                <td class="py-2 px-3 text-zinc-300">${escapeHtml(m.dosage)}</td>
+                <td class="py-2 px-3 text-zinc-300">${m.days} days</td>
+                <td class="py-2 px-3 font-mono text-zinc-100">${cur}${m.price}</td>
+                <td class="py-2 px-3 text-right">
+                  <button type="button" onclick="removeDraftMedicine(${idx})" class="text-rose-600 hover:underline font-semibold">Remove</button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function completeConsultation() {
+      const item = state.queue.find((q) => q.token === activeDoctorToken);
+      if (!item) {
+        showToast("No active patient selected.");
+        return;
+      }
+      const diagnosis = document.getElementById("rxDiagnosis").value.trim() || "General Outpatient Consultation";
+      const consultFee = parseInt(document.getElementById("rxConsultFee").value, 10) || 500;
+      const notes = document.getElementById("rxNotes").value.trim() || "Follow standard dosage instructions.";
+
+      item.diagnosis = diagnosis;
+      item.consultFee = consultFee;
+      item.medicines = JSON.parse(JSON.stringify(draftRxMedicines));
+      item.notes = notes;
+      item.status = "PHARMACY_READY";
+
+      const medTotal = item.medicines.reduce((s, m) => s + m.price, 0);
+      const totalBill = consultFee + medTotal;
+
+      // Permanently append visit to Patient's Unique Cloud ID record
+      const patient = state.patients[item.cloudId];
+      if (patient) {
+        patient.history.unshift({
+          date: new Date().toISOString().slice(0, 10),
+          diagnosis,
+          vitals: item.vitals,
+          medicines: item.medicines.map((m) => `${m.name} (${m.dosage} for ${m.days}d)`),
+          notes,
+          totalBill
+        });
+      }
+
+      // Automatically promote next waiting patient into Doctor's room
+      const nextWaiting = state.queue.find((q) => q.status === "WAITING");
+      if (nextWaiting) {
+        nextWaiting.status = "IN_CONSULT";
+        activeDoctorToken = nextWaiting.token;
+      } else {
+        activeDoctorToken = "";
+      }
+
+      draftRxMedicines = [];
+      document.getElementById("rxDiagnosis").value = "";
+      document.getElementById("rxNotes").value = "";
+
+      saveState();
+      renderAll();
+      showToast(`Cloud ID ${item.cloudId} updated! Final bill (${state.saasConfig.currency}${totalBill}) & Rx dispatched to Pharmacy.`);
+      switchTab("pharmacy");
+    }
+
+    // --- Pharmacy & 1-Stop Exit Actions ---
+    function togglePackBag(tokenStr) {
+      const item = state.queue.find((q) => q.token === tokenStr);
+      if (!item) return;
+      item.packed = !item.packed;
+      saveState();
+      renderAll();
+      showToast(item.packed ? `Medicine bag packed for ${item.token}` : `Packing status reset for ${item.token}`);
+    }
+
+    function completeSingleWindowExit(tokenStr) {
+      const item = state.queue.find((q) => q.token === tokenStr);
+      if (!item) return;
+      item.packed = true;
+      item.paid = true;
+      item.status = "COMPLETED";
+      saveState();
+      renderAll();
+      openDigitalSlip(tokenStr);
+      showToast(`Zero-Line Checkout complete for ${item.token}! Patient exits with prepared bag.`);
+    }
+
+    function openDigitalSlip(tokenStr) {
+      const item = state.queue.find((q) => q.token === tokenStr);
+      if (!item) return;
+      const p = state.patients[item.cloudId];
+      const cur = state.saasConfig.currency;
+      const medTotal = (item.medicines || []).reduce((acc, m) => acc + m.price, 0);
+      const total = (item.consultFee || 500) + medTotal;
+
+      document.getElementById("slipClinicHeader").textContent = state.saasConfig.brandName;
+      document.getElementById("slipModalContent").innerHTML = `
+        <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 flex justify-between">
+          <div>
+            <div><strong>Patient:</strong> ${escapeHtml(p.name)} (${p.age}y, ${p.blood})</div>
+            <div><strong>Unique Cloud ID:</strong> <span class="font-mono font-bold text-teal-300">${p.cloudId}</span></div>
+            <div><strong>Phone:</strong> ${escapeHtml(p.phone)}</div>
+          </div>
+          <div class="text-right">
+            <div><strong>Token:</strong> ${item.token}</div>
+            <div><strong>Vitals:</strong> ${escapeHtml(item.vitals)}</div>
+            <div><strong>Status:</strong> <span class="text-emerald-400 font-bold">${item.status}</span></div>
+          </div>
+        </div>
+        <div>
+          <strong>Diagnosis:</strong> ${escapeHtml(item.diagnosis || "General Consultation")}
+        </div>
+        <div class="border border-zinc-800 rounded-xl overflow-hidden">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-zinc-900 border-b border-zinc-800">
+                <th class="py-1.5 px-2.5">Rx Medicine</th>
+                <th class="py-1.5 px-2.5">Dosage</th>
+                <th class="py-1.5 px-2.5 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(item.medicines || []).map((m) => `
+                <tr class="border-b border-zinc-800">
+                  <td class="py-1.5 px-2.5 font-medium">${escapeHtml(m.name)}</td>
+                  <td class="py-1.5 px-2.5">${escapeHtml(m.dosage)} (${m.days}d)</td>
+                  <td class="py-1.5 px-2.5 text-right font-mono">${cur}${m.price}</td>
+                </tr>
+              `).join("")}
+              <tr class="bg-zinc-900">
+                <td colspan="2" class="py-1.5 px-2.5 font-medium">Doctor Consultation Fee</td>
+                <td class="py-1.5 px-2.5 text-right font-mono">${cur}${item.consultFee || 500}</td>
+              </tr>
+              <tr class="bg-teal-950/80 font-bold text-teal-200">
+                <td colspan="2" class="py-2 px-2.5">Single-Window Total Bill</td>
+                <td class="py-2 px-2.5 text-right font-mono text-sm">${cur}${total}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="text-zinc-300"><strong>Advice:</strong> ${escapeHtml(item.notes || "—")}</div>
+      `;
+      document.getElementById("slipModal").classList.remove("hidden");
+    }
+
+    function closeSlipModal() {
+      document.getElementById("slipModal").classList.add("hidden");
+    }
+
+    // --- Cloud Backup & OS Install Modals ---
+    function exportCloudData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const a = document.createElement("a");
+      a.setAttribute("href", dataStr);
+      a.setAttribute("download", "zero_line_cloud_ehr_backup.json");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast("Exported encrypted Cloud EHR JSON snapshot.");
+    }
+
+    function openInstallModal() {
+      document.getElementById("installModal").classList.remove("hidden");
+    }
+
+    function closeInstallModal() {
+      document.getElementById("installModal").classList.add("hidden");
+    }
+
+    function triggerNativePwaInstall() {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+      } else {
+        showToast("Use your browser's address bar 'Install App' or 'Add to Home Screen' menu to install natively.");
+      }
+      closeInstallModal();
+    }
+
+    // --- SaaS Pricing Config ---
+    function updateSaasPricingConfig() {
+      const brandName = document.getElementById("saasBrandName").value.trim() || "Zero-Line Clinic Hub";
+      const currency = document.getElementById("saasCurrency").value;
+      const monthlyPrice = parseInt(document.getElementById("saasMonthlyPrice").value, 10) || 0;
+      const lifetimePrice = parseInt(document.getElementById("saasLifetimePrice").value, 10) || 0;
+      const clientCount = parseInt(document.getElementById("saasClientCount").value, 10) || 1;
+
+      state.saasConfig = { brandName, currency, monthlyPrice, lifetimePrice, clientCount };
+      saveState();
+      populateFormularyDropdown();
+      renderAll();
+    }
+
+    // --- Rendering Functions ---
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderFrontDeskQueue() {
+      const container = document.getElementById("frontDeskQueueList");
+      const activeItems = state.queue.filter((q) => q.status === "WAITING" || q.status === "IN_CONSULT");
+      if (activeItems.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-xl">No patients waiting. Check in a patient on the left to issue a live WhatsApp token.</div>`;
+        return;
+      }
+
+      container.innerHTML = activeItems.map((item, idx) => {
+        const p = state.patients[item.cloudId] || { name: "Unknown", phone: "", allergies: "None" };
+        const isConsult = item.status === "IN_CONSULT";
+        const badgeClass = isConsult
+          ? "bg-blue-600 text-white"
+          : "bg-amber-100 text-amber-200 border border-amber-300";
+        const statusText = isConsult ? "IN DOCTOR ROOM NOW" : `WAITING (~${idx * 10}m • Arrive 10m prior)`;
+
+        return `
+          <div class="p-3.5 rounded-xl border ${isConsult ? 'border-blue-700 bg-blue-950/40' : 'border-zinc-800 bg-zinc-900/60'} flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="px-3 py-2 rounded-xl font-mono font-bold text-sm ${badgeClass}">${item.token}</div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-sm text-zinc-100">${escapeHtml(p.name)}</span>
+                  <span class="text-xs font-mono bg-zinc-900 text-zinc-300 px-2 py-0.5 rounded border border-zinc-800">${p.cloudId}</span>
+                </div>
+                <p class="text-xs text-zinc-400">${escapeHtml(item.complaint)} • Checked in ${item.checkInTime}</p>
+                <span class="inline-block mt-1 text-[11px] font-semibold ${isConsult ? 'text-blue-400' : 'text-amber-400'}">${statusText}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="previewWhatsAppToken('${item.token}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 text-xs font-semibold">
+                Preview WhatsApp
+              </button>
+              <button type="button" onclick="openDoctorForToken('${item.token}')" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-semibold">
+                Open EHR
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function openDoctorForToken(tokenStr) {
+      activeDoctorToken = tokenStr;
+      switchTab("doctor");
+      selectDoctorPatient(tokenStr);
+    }
+
+    function renderDoctorView() {
+      const sel = document.getElementById("doctorPatientSelect");
+      const candidates = state.queue.filter((q) => q.status === "IN_CONSULT" || q.status === "WAITING");
+
+      if (candidates.length === 0) {
+        sel.innerHTML = `<option value="">No active patients in queue</option>`;
+        document.getElementById("docEhrCloudId").textContent = "CLD ----";
+        document.getElementById("docEhrName").textContent = "No Active Patient in Queue";
+        document.getElementById("docEhrMeta").textContent = "Check in a patient at the Front Desk first.";
+        document.getElementById("docEhrAllergies").textContent = "—";
+        document.getElementById("docEhrConditions").textContent = "—";
+        document.getElementById("docEhrComplaint").textContent = "—";
+        document.getElementById("docEhrVitals").textContent = "";
+        document.getElementById("docEhrHistoryList").innerHTML = `<div class="text-xs text-zinc-500">No patient selected.</div>`;
+        renderDraftRxList();
+        return;
+      }
+
+      if (!candidates.some((c) => c.token === activeDoctorToken)) {
+        activeDoctorToken = candidates[0].token;
+      }
+
+      sel.innerHTML = candidates.map((c) => {
+        const p = state.patients[c.cloudId];
+        return `<option value="${c.token}" ${c.token === activeDoctorToken ? "selected" : ""}>${c.token} — ${escapeHtml(p.name)} (${c.cloudId}) [${c.status}]</option>`;
+      }).join("");
+
+      const activeItem = state.queue.find((q) => q.token === activeDoctorToken);
+      const patient = state.patients[activeItem.cloudId];
+
+      document.getElementById("docEhrCloudId").textContent = `UNIQUE ID: ${patient.cloudId}`;
+      document.getElementById("docEhrName").textContent = patient.name;
+      document.getElementById("docEhrMeta").textContent = `${patient.age} yrs • Blood: ${patient.blood} • Phone: +91 ${patient.phone}`;
+      document.getElementById("docEhrTokenBadge").innerHTML = `<span class="px-2.5 py-1 rounded-lg bg-blue-950 text-blue-300 border border-blue-800 font-mono font-bold text-xs">${activeItem.token}</span>`;
+      document.getElementById("docEhrAllergies").textContent = patient.allergies || "None";
+      document.getElementById("docEhrConditions").textContent = patient.conditions || "None";
+      document.getElementById("docEhrComplaint").textContent = activeItem.complaint;
+      document.getElementById("docEhrVitals").textContent = activeItem.vitals;
+
+      const histContainer = document.getElementById("docEhrHistoryList");
+      if (!patient.history || patient.history.length === 0) {
+        histContainer.innerHTML = `<div class="p-3 rounded-xl bg-zinc-900 text-xs text-zinc-500">First recorded visit under Cloud ID ${patient.cloudId}.</div>`;
+      } else {
+        histContainer.innerHTML = patient.history.map((h) => `
+          <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 text-xs space-y-1">
+            <div class="flex justify-between font-semibold text-zinc-100">
+              <span>${escapeHtml(h.diagnosis)}</span>
+              <span class="font-mono text-zinc-400">${h.date}</span>
+            </div>
+            <div class="text-zinc-300">Rx: ${escapeHtml((h.medicines || []).join(", ") || "Consultation only")}</div>
+            <div class="text-zinc-400">Vitals: ${escapeHtml(h.vitals)} • Advice: ${escapeHtml(h.notes)}</div>
+          </div>
+        `).join("");
+      }
+
+      renderDraftRxList();
+    }
+
+    function renderPharmacyView() {
+      const container = document.getElementById("pharmacyDispatchList");
+      const cur = state.saasConfig.currency;
+      const items = state.queue.filter((q) => q.status === "PHARMACY_READY" || q.status === "COMPLETED");
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="col-span-2 p-6 text-center text-xs text-zinc-500 border border-dashed border-zinc-800 rounded-xl">No prescriptions dispatched yet. Complete a consultation in the Doctor Tablet tab.</div>`;
+        return;
+      }
+
+      container.innerHTML = items.map((item) => {
+        const p = state.patients[item.cloudId];
+        const medTotal = (item.medicines || []).reduce((acc, m) => acc + m.price, 0);
+        const grandTotal = (item.consultFee || 500) + medTotal;
+        const isDone = item.status === "COMPLETED";
+
+        return `
+          <div class="p-4 rounded-2xl border ${isDone ? 'border-emerald-800 bg-emerald-950/30' : 'border-purple-800 bg-zinc-900/80'} shadow-sm space-y-3 flex flex-col justify-between">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 rounded-lg font-mono font-bold text-xs ${isDone ? 'bg-emerald-600 text-white' : 'bg-purple-700 text-white'}">${item.token}</span>
+                  <div>
+                    <h3 class="font-bold text-sm text-zinc-100">${escapeHtml(p.name)}</h3>
+                    <span class="text-[11px] font-mono text-zinc-400">Cloud ID: ${p.cloudId} • +91 ${escapeHtml(p.phone)}</span>
+                  </div>
+                </div>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full ${isDone ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-amber-100 text-amber-300'}">
+                  ${isDone ? 'PAID & HANDED OVER' : (item.packed ? 'BAG PACKED • AWAITING PAY' : 'PACKING MEDICINE')}
+                </span>
+              </div>
+
+              <div class="text-xs text-zinc-200">
+                <strong>Diagnosis:</strong> ${escapeHtml(item.diagnosis)}
+              </div>
+
+              <div class="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs space-y-1">
+                <div class="font-semibold text-zinc-300">Digital Prescription to Pack:</div>
+                ${(item.medicines || []).length === 0
+                  ? `<div class="text-zinc-500">No medicines prescribed (Consultation only)</div>`
+                  : item.medicines.map((m) => `<div class="flex justify-between"><span>• <strong>${escapeHtml(m.name)}</strong> (${escapeHtml(m.dosage)}, ${m.days}d)</span><span class="font-mono">${cur}${m.price}</span></div>`).join("")
+                }
+                <div class="flex justify-between border-t border-zinc-800 pt-1 mt-1 text-zinc-300">
+                  <span>Doctor Consultation Fee</span>
+                  <span class="font-mono">${cur}${item.consultFee || 500}</span>
+                </div>
+                <div class="flex justify-between font-bold text-zinc-100 text-sm pt-1">
+                  <span>Single-Window Total Bill</span>
+                  <span class="font-mono text-teal-300">${cur}${grandTotal}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-800">
+              <button type="button" onclick="openDigitalSlip('${item.token}')" class="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-semibold">
+                View / Print Digital Slip
+              </button>
+              ${!isDone ? `
+                <div class="flex items-center gap-2">
+                  <button type="button" onclick="togglePackBag('${item.token}')" class="px-3 py-1.5 rounded-xl border border-purple-700 bg-purple-950 hover:bg-purple-900 text-purple-200 text-xs font-semibold">
+                    ${item.packed ? '✓ Bag Packed' : 'Mark Bag Packed'}
+                  </button>
+                  <button type="button" onclick="completeSingleWindowExit('${item.token}')" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm">
+                    Collect ${cur}${grandTotal} & Hand Over Bag
+                  </button>
+                </div>
+              ` : `<span class="text-xs font-semibold text-emerald-400">✓ Zero-Line Exit Completed</span>`}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderCloudDirectory() {
+      const container = document.getElementById("cloudDirectoryList");
+      const q = (document.getElementById("cloudSearchInput").value || "").trim().toLowerCase();
+      const cur = state.saasConfig.currency;
+
+      const list = Object.values(state.patients).filter((p) => {
+        if (!q) return true;
+        return (
+          p.cloudId.toLowerCase().includes(q) ||
+          p.name.toLowerCase().includes(q) ||
+          p.phone.toLowerCase().includes(q)
+        );
+      });
+
+      container.innerHTML = list.map((p) => `
+        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/70 space-y-2.5">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="inline-block font-mono font-bold text-xs bg-teal-900 text-white px-2.5 py-0.5 rounded">${p.cloudId}</span>
+              <h3 class="font-bold text-base text-zinc-100 mt-1">${escapeHtml(p.name)}</h3>
+              <p class="text-xs text-zinc-400">${p.age} yrs • Blood: ${p.blood} • WhatsApp: +91 ${escapeHtml(p.phone)}</p>
+            </div>
+            <button type="button" onclick="quickCheckInFromCloud('${p.cloudId}')" class="px-3 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold">
+              Load at Front Desk
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="p-2 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-200">
+              <strong>Allergies:</strong> ${escapeHtml(p.allergies || "None")}
+            </div>
+            <div class="p-2 rounded-lg bg-amber-950/60 border border-amber-800 text-amber-200">
+              <strong>Conditions:</strong> ${escapeHtml(p.conditions || "None")}
+            </div>
+          </div>
+          <div class="text-xs space-y-1">
+            <div class="font-semibold text-zinc-300">Stored Cloud Visits (${p.history.length}):</div>
+            ${p.history.length === 0
+              ? `<div class="text-zinc-500">No completed consultations yet.</div>`
+              : p.history.map((h) => `
+                <div class="p-2 rounded-lg bg-white border border-zinc-800">
+                  <div class="flex justify-between font-semibold">
+                    <span>${escapeHtml(h.diagnosis)}</span>
+                    <span class="font-mono text-zinc-400">${h.date} • ${cur}${h.totalBill}</span>
+                  </div>
+                  <div class="text-zinc-400">${escapeHtml((h.medicines || []).join(", "))}</div>
+                </div>
+              `).join("")
+            }
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function quickCheckInFromCloud(cloudId) {
+      switchTab("frontdesk");
+      document.getElementById("lookupInput").value = cloudId;
+      handlePatientLookup(cloudId);
+      document.getElementById("formComplaint").focus();
+    }
+
+    function renderSaasView() {
+      const cfg = state.saasConfig;
+      document.getElementById("clinicTitleDisplay").textContent = cfg.brandName;
+      document.getElementById("previewPlanTitle").textContent = cfg.brandName;
+      document.getElementById("previewMonthlyTag").innerHTML = `${cfg.currency}${cfg.monthlyPrice.toLocaleString()}<span class="text-xs font-normal text-zinc-400">/month</span>`;
+      document.getElementById("previewLifetimeTag").innerHTML = `${cfg.currency}${cfg.lifetimePrice.toLocaleString()}<span class="text-xs font-normal text-zinc-400">/perpetual</span>`;
+
+      const mrr = cfg.monthlyPrice * cfg.clientCount;
+      const arr = mrr * 12;
+      document.getElementById("calcMrrDisplay").textContent = `${cfg.currency}${mrr.toLocaleString()}/mo`;
+      document.getElementById("calcArrDisplay").textContent = `${cfg.currency}${arr.toLocaleString()}/yr`;
+    }
+
+    function renderCounts() {
+      document.getElementById("countWaiting").textContent = state.queue.filter((q) => q.status === "WAITING").length;
+      document.getElementById("countInConsult").textContent = state.queue.filter((q) => q.status === "IN_CONSULT").length;
+      document.getElementById("countPharmacy").textContent = state.queue.filter((q) => q.status === "PHARMACY_READY").length;
+      document.getElementById("countCompleted").textContent = state.queue.filter((q) => q.status === "COMPLETED").length;
+    }
+
+    function renderAll() {
+      renderCounts();
+      renderFrontDeskQueue();
+      renderDoctorView();
+      renderPharmacyView();
+      renderCloudDirectory();
+      renderSaasView();
+    }
+
+    // Initialize on load
+    window.addEventListener("DOMContentLoaded", () => {
+      populateFormularyDropdown();
+      renderAll();
+      previewWhatsAppToken("T-102");
+    });
+  </script>
+</body>
+</html>
